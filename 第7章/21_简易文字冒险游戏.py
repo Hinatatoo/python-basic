@@ -53,10 +53,10 @@ def move(character):
         return 7
 
 
-forest_enemy = [{'name': '史莱姆', 'HP': 30, 'atk': 5, 'coin_drop=': 15},
-                {'name': '野狼', 'HP': 40, 'atk': 8, 'coin_drop=': 20}]
-cave_enemy = [{'name': '哥布林', 'HP': 50, 'atk': 12, 'coin_drop=': 30},
-              {'name': '蝙蝠', 'HP': 25, 'atk': 6, 'coin_drop=': 10}]
+forest_enemy = [{'name': '史莱姆', 'HP': 30, 'atk': 5, 'coin_drop': 15},
+                {'name': '野狼', 'HP': 40, 'atk': 8, 'coin_drop': 20}]
+cave_enemy = [{'name': '哥布林', 'HP': 50, 'atk': 12, 'coin_drop': 30},
+              {'name': '蝙蝠', 'HP': 25, 'atk': 6, 'coin_drop': 10}]
 
 
 def encounter_enemy(location):
@@ -70,17 +70,79 @@ def encounter_enemy(location):
 
 
 def battle(character, enemy):
-    # 展示敌人信息
-    choice = int(input("玩家选择:1.攻击 / 2.逃跑"))
-    while character.HP == 0 or enemy.HP == 0:
-        if choice == 1:
-            pass
-        elif choice == 2:
-            alter = random.choice(('逃跑成功', '逃跑失败'))
-            print("您逃跑了，无法捡到金币。")
-            break
+    print(f"遭遇了{enemy['name']}!HP:{enemy['HP']} 攻击力:{enemy['atk']}")
+    while character.HP > 0 and enemy['HP'] > 0:
+        choice = input("玩家选择:1.攻击 / 2.逃跑")
+        if choice == '1':
+            # 玩家攻击敌人
+            enemy['HP'] -= character.atk
+            print(f'对敌人造成{character.atk}点伤害')
+            if enemy['HP'] > 0:
+                character.HP -= enemy['atk']
+                print(f"敌人对您造成{enemy['atk']}点伤害")
+
+        elif choice == '2':
+            result = random.choice(['成功', '失败'])
+            if result == '成功':
+                print("逃跑成功")
+                return
+            else:
+                print("逃跑失败，敌人反击！")
+                character.HP -= enemy['atk']
+                print(f"敌人对您造成{enemy['atk']}点伤害，当前HP：{character.HP}")
         else:
-            print("输入无效。")
+            print("输入无效！")
+
+    if enemy['HP'] <= 0:
+        print(f"击败了{enemy['name']}!获得了{enemy['coin_drop']}金币!")
+        character.coin += enemy['coin_drop']
+    elif character.HP <= 0:
+        print('您被击败了，游戏结束')
+        return False
+
+
+commodity = [{'name': '血瓶', 'price': 20, 'role': 'HP恢复30'},
+             {'name': '武器', 'price': 50, 'role': '攻击力+5'}]
+
+
+def shop(character):
+    while True:
+        print(f'\n您来到了集市！当前金币:{character.coin}')
+        for i, item in enumerate(commodity, 1):
+            print(f'{i}.{item["name"]}-{item["price"]}金币-{item["role"]}')
+        print('q.离开集市')
+
+        choice = input('请选择:')
+        if choice == 'q':
+            break
+        elif choice.isdigit() and 1 <= int(choice) <= len(commodity):
+            item=commodity[int(choice)-1]
+            if character.coin>=item['price']:
+                character.coin-=item['price']
+                character.pkg.append(item['name'])
+                print(f'购买成功！{item["name"]}已经存入背包。')
+            else:
+                print('金币不足！')
+        else:
+            print('输入无效')
+
+
+def use_item(character):
+    if not character.pkg:
+        print('背包没有道具！')
+    else:
+        print('背包里面有以下东西：')
+        for i,item in enumerate(character.pkg,1):
+            print(f'{i}.{item}')
+        choice=int(input('请选择需要使用哪一个：'))
+        if character.pkg[choice-1]=='血瓶':
+            character.HP+=30
+            if character.HP>=100:
+                character.HP=100
+            character.pkg.pop(choice-1)
+        elif character.pkg[choice-1]=='武器':
+            character.atk+=5
+            character.pkg.pop(choice-1)
 
 
 p1 = create_character()
@@ -91,3 +153,15 @@ while True:
     destination = move(p1)
     if destination is None:
         break
+    elif destination=='市集':
+        shop(p1)
+    elif destination=='村庄':
+        print('村庄很安全，您可以休息一下。')
+        use_item(p1)
+    else:
+        enemy = encounter_enemy(destination)
+        if enemy:
+            alive = battle(p1, enemy)
+            show_status(p1)
+            if not alive:
+                break
